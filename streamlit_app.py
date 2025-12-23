@@ -8,3 +8,4 @@ st.write("Streamlit Cloud デプロイ確認用アプリです。")
 
 if st.button("動作テスト"):
     st.success("Streamlit は正常に動作しています")
+    
