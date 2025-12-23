@@ -1,23 +1,20 @@
 import streamlit as st
 import tempfile
-import os
 import datetime
 import av
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
 
-st.set_page_config(page_title="Psychotherapy AI Demo")
-
-st.title("精神療法 AI 記録支援（試作）")
 st.subheader("③ 録音 → 音声保存テスト")
 
-audio_frames = []
+if "audio_frames" not in st.session_state:
+    st.session_state.audio_frames = []
 
 class AudioProcessor:
     def recv(self, frame: av.AudioFrame):
-        audio_frames.append(frame)
+        st.session_state.audio_frames.append(frame)
         return frame
 
-ctx = webrtc_streamer(
+webrtc_streamer(
     key="audio-save-test",
     mode=WebRtcMode.SENDONLY,
     audio_processor_factory=AudioProcessor,
@@ -25,7 +22,7 @@ ctx = webrtc_streamer(
 )
 
 if st.button("⏹ 録音終了・保存"):
-    if not audio_frames:
+    if not st.session_state.audio_frames:
         st.warning("まだ音声がありません")
     else:
         now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -33,7 +30,7 @@ if st.button("⏹ 録音終了・保存"):
             container = av.open(f.name, mode="w")
             stream = container.add_stream("pcm_s16le", rate=16000)
 
-            for frame in audio_frames:
+            for frame in st.session_state.audio_frames:
                 for packet in stream.encode(frame):
                     container.mux(packet)
 
@@ -41,3 +38,4 @@ if st.button("⏹ 録音終了・保存"):
 
         st.success("音声を保存しました")
         st.write(f"保存先: {f.name}")
+        st.session_state.audio_frames = []
