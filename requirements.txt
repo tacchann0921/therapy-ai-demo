@@ -1,4 +1,6 @@
 streamlit
-streamlit-webrtc
-av
+openai-whisper
+torch
+sounddevice
+wavio
 numpy
