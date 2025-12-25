@@ -1,41 +1,33 @@
 import streamlit as st
+import whisper
 import tempfile
-import datetime
-import av
-from streamlit_webrtc import webrtc_streamer, WebRtcMode
+import os
 
-st.subheader("③ 録音 → 音声保存テスト")
+st.set_page_config(page_title="精神療法 AI 記録支援（アップロード版）")
+st.title("精神療法 AI 記録支援")
 
-if "audio_frames" not in st.session_state:
-    st.session_state.audio_frames = []
+st.write("録音済み音声ファイルをアップロードしてください。")
 
-class AudioProcessor:
-    def recv(self, frame: av.AudioFrame):
-        st.session_state.audio_frames.append(frame)
-        return frame
-
-webrtc_streamer(
-    key="audio-save-test",
-    mode=WebRtcMode.SENDONLY,
-    audio_processor_factory=AudioProcessor,
-    media_stream_constraints={"audio": True, "video": False},
+uploaded_file = st.file_uploader(
+    "音声ファイル（wav / mp3 / m4a）",
+    type=["wav", "mp3", "m4a"]
 )
 
-if st.button("⏹ 録音終了・保存"):
-    if not st.session_state.audio_frames:
-        st.warning("まだ音声がありません")
-    else:
-        now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        with tempfile.NamedTemporaryFile(suffix=f"_{now}.wav", delete=False) as f:
-            container = av.open(f.name, mode="w")
-            stream = container.add_stream("pcm_s16le", rate=16000)
+if uploaded_file is not None:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+        tmp.write(uploaded_file.read())
+        audio_path = tmp.name
 
-            for frame in st.session_state.audio_frames:
-                for packet in stream.encode(frame):
-                    container.mux(packet)
+    st.success("音声ファイルを受け取りました")
 
-            container.close()
+    st.info("文字起こし中…")
+    model = whisper.load_model("tiny")
+    result = model.transcribe(audio_path)
+    transcript = result["text"]
 
-        st.success("音声を保存しました")
-        st.write(f"保存先: {f.name}")
-        st.session_state.audio_frames = []
+    st.subheader("🗒 文字起こし")
+    st.text_area("", transcript, height=200)
+
+    st.subheader("📝 簡易要約")
+    summary = " ".join(transcript.split("。")[:3])
+    st.text_area("", summary, height=150)
