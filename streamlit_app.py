@@ -1,5 +1,5 @@
 import streamlit as st
-import whisper
+st.warning("※ このCloud版では文字起こしは無効です（ローカル実行専用）")
 import tempfile
 import os
 
